@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/maurina">
+        <file>Resources/ledGreen.png</file>
+        <file>Resources/ledRed.png</file>
+        <file>Resources/about.jpg</file>
+        <file>languages/maurina_es.qm</file>
+    </qresource>
+</RCC>
