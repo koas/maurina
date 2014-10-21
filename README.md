@@ -1,7 +1,7 @@
 maurina
 =======
 
-Maurina is a server side languages console. It was designed to help debug programs that execute on a server.
+Maurina is a server side languages console. It was designed to help debug programs that execute on a server by displaying error messages, debug messages, info about sessions, HTTP requests, etc...
 
 It was designed with PHP in mind, because it's the server side language I use, but it can be used with any other programming language since it's just an UDP server that can receive data from any program.
 
