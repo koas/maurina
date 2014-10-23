@@ -2,12 +2,12 @@
 /*
 
 Maurina connector for PHP.
-Version 1.1
+Version 1.2
 Álvaro Calleja (alvaro.calleja at gmail.com)
 http://www.maurina.org
 
 When instantiated this class sends to the Maurina console the contents of
-the $_REQUEST and $_SESSION (if defined) global variables.
+the $_REQUEST, $_SESSION and $_COOKIES (if defined) global variables.
 
 It also captures any errors and send its contents to the console. You can 
 configure the error reporting level below.
@@ -22,6 +22,7 @@ $M->log('This is a user defined message');
 
 -- Changelog --
 
+1.2 Added the Cookies tab
 1.1 Fixed a notice when the calling script does not use sessions.
 1.0 Initial release.
 */
@@ -51,10 +52,12 @@ class Maurina
 	const TYPE_ERRORS  = 2;
 	const TYPE_REQUEST = 3;
 	const TYPE_SESSION = 4;
+	const TYPE_COOKIES = 5;
 
 	public $serverIp = '127.0.0.1';
 	public $serverPort = 1947;
-	public $tabCaptions = array('&User', '&Errors', '&Request', '&Session');
+	public $tabCaptions = array('&User', '&Errors', '&Request', '&Session',
+								'&Cookies');
 
 	function __construct($serverIp = '', $serverPort = '', $tabCaptions = '')
 	{
@@ -70,9 +73,14 @@ class Maurina
 
 		if (count($_REQUEST) > 0)
 			$this->sendLog(Maurina::TYPE_REQUEST, print_r($_REQUEST, true));
+		
 		if (isset($_SESSION))
 			if (count($_SESSION) > 0)
 				$this->sendLog(Maurina::TYPE_SESSION, print_r($_SESSION, true));
+
+		if (isset($_COOKIES))
+			if (count($_COOKIES) > 0)
+				$this->sendLog(Maurina::TYPE_COOKIES, print_r($_COOKIES, true));
 	}
 
 	public function log($message)
@@ -163,9 +171,10 @@ class Maurina
 		$socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
 		$data = array('tabs' => $this->tabCaptions,
 					  'log1' => '',
-					  'log2' =>'',
+					  'log2' => '',
 					  'log3' => '',
-					  'log4' => '');
+					  'log4' => '',
+					  'log5' => '');
 		
 		if ($showTime)
 		{
@@ -179,6 +188,7 @@ class Maurina
 			case Maurina::TYPE_ERRORS  : $data['log2'] = $message; break;
 			case Maurina::TYPE_REQUEST : $data['log3'] = $message; break;
 			case Maurina::TYPE_SESSION : $data['log4'] = $message; break;
+			case Maurina::TYPE_COOKIES : $data['log5'] = $message; break;
 		}
 
 		$data = json_encode($data);
