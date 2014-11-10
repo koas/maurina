@@ -2,7 +2,7 @@
 /*
 
 Maurina connector for PHP.
-Version 1.2
+Version 1.3
 Álvaro Calleja (alvaro.calleja at gmail.com)
 http://www.maurina.org
 
@@ -20,8 +20,11 @@ include ('Maurina.php');
 $M = new Maurina();
 $M->log('This is a user defined message');
 
+This class requires PHP5.
+
 -- Changelog --
 
+1.3 Added packet counter to prevent overflows (see issue #1 in Github)
 1.2 Added the Cookies tab
 1.1 Fixed a notice when the calling script does not use sessions.
 1.0 Initial release.
@@ -54,10 +57,13 @@ class Maurina
 	const TYPE_SESSION = 4;
 	const TYPE_COOKIES = 5;
 
-	public $serverIp = '127.0.0.1';
-	public $serverPort = 1947;
-	public $tabCaptions = array('&User', '&Errors', '&Request', '&Session',
-								'&Cookies');
+	private $serverIp = '127.0.0.1';
+	private $serverPort = 1947;
+	private $tabCaptions = array('&User', '&Errors', '&Request', '&Session',
+								 '&Cookies');
+
+	private $numPacketsSent = 0;
+	private $numPacketsBeforePause = 50;
 
 	function __construct($serverIp = '', $serverPort = '', $tabCaptions = '')
 	{
@@ -166,7 +172,7 @@ class Maurina
 		}
 	}
 
-	public function sendLog($type, $message, $showTime = false)
+	private function sendLog($type, $message, $showTime = false)
 	{
 		$socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
 		$data = array('tabs' => $this->tabCaptions,
@@ -192,13 +198,17 @@ class Maurina
 		}
 
 		$data = json_encode($data);
+
+		// Insert pause every 50 packets to prevent overflows
+		if (++$this->numPacketsSent % $this->numPacketsBeforePause == 0)
+			usleep(100000);
 		
 		socket_sendto($socket, $data, strlen($data), 0, $this->serverIp,
 					  $this->serverPort);
 		socket_close($socket);
 	}
 
-	public function getLineFromFile($file, $lineNumber)
+	private function getLineFromFile($file, $lineNumber)
 	{
 		$f = fopen($file, 'r');
 		$count = 1;
@@ -212,7 +222,7 @@ class Maurina
 		return $line;
 	}
 
-	protected function formatDump($data)
+	private function formatDump($data)
 	{
 		$data = htmlentities($data);
 		$data = str_replace("  ", "<span style='color:#fff'>__</span>", $data);
