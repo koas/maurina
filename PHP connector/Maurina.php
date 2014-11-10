@@ -199,7 +199,7 @@ class Maurina
 
 		$data = json_encode($data);
 
-		// Insert pause every 50 packets to prevent overflows
+		// Insert pause to prevent overflows
 		if (++$this->numPacketsSent % $this->numPacketsBeforePause == 0)
 			usleep(100000);
 		
