@@ -84,9 +84,9 @@ class Maurina
 			if (count($_SESSION) > 0)
 				$this->sendLog(Maurina::TYPE_SESSION, print_r($_SESSION, true));
 
-		if (isset($_COOKIES))
-			if (count($_COOKIES) > 0)
-				$this->sendLog(Maurina::TYPE_COOKIES, print_r($_COOKIES, true));
+		if (isset($_COOKIE))
+			if (count($_COOKIE) > 0)
+				$this->sendLog(Maurina::TYPE_COOKIES, print_r($_COOKIE, true));
 	}
 
 	public function log($message)
@@ -157,7 +157,8 @@ class Maurina
 		$message  = "<span style='color:red'>[$type] ";
 		$message .= "Line $errorLine in $errorFile";
 		$message .= "</span><br /><span style='color:#DE2500'><em>";
-		$message .= $this->getLineFromFile($errorFile, $errorLine);
+		if (file_exists($errorFile))
+			$message .= $this->getLineFromFile($errorFile, $errorLine);
 		$message .= "</em></span><br />$errorMsg";
 
 		$this->sendLog(Maurina::TYPE_ERRORS, $message);

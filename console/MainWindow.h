@@ -10,15 +10,26 @@
 #include <QTimer>
 #include <QLabel>
 #include <QTranslator>
+#include <QShortcut>
 
 #include "aboutWindow.h"
 
 #define CONFIG_FILE "config"
-#define VERSION "1.0"
+#define VERSION "1.1"
 
-namespace Ui {
+namespace Ui
+{
 class MainWindow;
 }
+
+/**
+* Layout types
+*/
+enum LayoutType
+{
+    DetailedLayout = 0, /**< Only one tab visible	*/
+    CompactLayout  = 1,	/**< All tabs visible	*/
+    };
 
 class MainWindow : public QMainWindow
 {
@@ -31,6 +42,8 @@ private slots:
     void slClearTimeout();
     void slClearLogs();
     void slShowAbout();
+    void slToggleControls();
+    void slChangeLayout();
     
 public:
     explicit MainWindow(QWidget *parent = 0);
@@ -49,10 +62,16 @@ private:
     bool resetLogs;
     QVector<int> logCount;
     QStringList tabCaptions;
+    bool controlsVisible;
+    QShortcut *scControls, *scAbout, *scLayout, *scExit;
+    LayoutType layoutType;
 
     void loadConfig();
     void saveConfig();
     void addDataToLog(int index, QString data);
+    void setTabCaption(int index, QString caption);
+    void updateControls();
+    void updateLayout();
 };
 
 #endif // MAINWINDOW_H

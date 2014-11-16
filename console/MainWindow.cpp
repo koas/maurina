@@ -4,8 +4,8 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    server(NULL),
-    clearTimer(NULL)
+    server(NULL), clearTimer(NULL), scControls(NULL), scAbout(NULL),
+    scLayout(NULL), scExit(NULL)
 {
     ui->setupUi(this);
 
@@ -20,8 +20,10 @@ MainWindow::MainWindow(QWidget *parent) :
     this->serverPort = 1947; // Maurina's year of birth
     this->timeoutEnabled = true;
     this->timeoutValue = 2;
-    this->logCount.resize(4);
-    this->tabCaptions << "Log 1" << "Log 2" << "Log 3" << "Log4";
+    this->logCount.resize(5);
+    this->tabCaptions << "Log 1" << "Log 2" << "Log 3" << "Log4" << "Log5";
+    this->controlsVisible = true;
+    this->layoutType = DetailedLayout;
 
     // Load config
     this->loadConfig();
@@ -38,6 +40,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionE_xit->setShortcut(QKeySequence(QKeySequence::Quit));
     ui->action_About->setShortcut(QKeySequence(QKeySequence::HelpContents));
+    ui->action_HideCntrls->setShortcut(QKeySequence(tr("Ctrl+H")));
+    ui->actionChangeLayout->setShortcut(QKeySequence(tr("Ctrl+L")));
+
+    ui->frameCompactLayoutTop->hide();
+    ui->frameCompactLayoutBottom->hide();
+    ui->tabWidgetA->tabBar()->hide();
+    ui->tabWidgetB->tabBar()->hide();
+    ui->tabWidgetC->tabBar()->hide();
+    ui->tabWidgetD->tabBar()->hide();
+    ui->tabWidgetE->tabBar()->hide();
 
     // UI connections
     connect(ui->uiRestart,          SIGNAL(clicked()),
@@ -52,6 +64,13 @@ MainWindow::MainWindow(QWidget *parent) :
             this,                   SLOT(close()));
     connect(ui->action_About,       SIGNAL(triggered()),
             this,                   SLOT(slShowAbout()));
+    connect(ui->action_HideCntrls,  SIGNAL(triggered()),
+            this,                   SLOT(slToggleControls()));
+    connect(ui->actionChangeLayout, SIGNAL(triggered()),
+            this,                   SLOT(slChangeLayout()));
+
+    this->updateControls();
+    this->updateLayout();
 
     // Start server
     this->slStartServer();
@@ -80,6 +99,10 @@ void MainWindow::slStartServer()
     this->serverPort = ui->uiServerPort->value();
     if (!this->server->bind(this->serverIp, this->serverPort))
     {
+        // If controls are hidden show them so the user sees the message
+        if (!this->controlsVisible)
+            this->slToggleControls();
+
         ui->uiStatusIcon->setPixmap(QPixmap(":/maurina/Resources/ledRed.png"));
         ui->uiStatusText->setText(tr("Server bind failed. "
                                       "Are you running any other instance "
@@ -132,13 +155,14 @@ void MainWindow::slPendingDatagrams()
         // Update tabs using datagram info
         short tabCount = this->tabCaptions.length();
         for (int x = 0; x < tabCount; ++x)
-            ui->tabWidget->setTabText(x, this->tabCaptions.at(x));
+            this->setTabCaption(x, this->tabCaptions.at(x));
 
         // Update log windows
         this->addDataToLog(0, data["log1"].toString());
         this->addDataToLog(1, data["log2"].toString());
         this->addDataToLog(2, data["log3"].toString());
         this->addDataToLog(3, data["log4"].toString());
+        this->addDataToLog(4, data["log5"].toString());
 
         // Launch clear timer
         this->clearTimer->start(this->timeoutValue * 1000);
@@ -166,10 +190,11 @@ void MainWindow::slClearLogs()
     ui->uiLog2->clear();
     ui->uiLog3->clear();
     ui->uiLog4->clear();
+    ui->uiLog5->clear();
 
     this->logCount.fill(0);
-    for (short x = 0; x < 4; ++x)
-        ui->tabWidget->setTabText(x, this->tabCaptions.at(x));
+    for (short x = 0; x < 5; ++x)
+        this->setTabCaption(x, this->tabCaptions.at(x));
 }
 
 void MainWindow::slShowAbout()
@@ -190,17 +215,18 @@ void MainWindow::addDataToLog(int index, QString data)
         case 1: ui->uiLog2->append(data); break;
         case 2: ui->uiLog3->append(data); break;
         case 3: ui->uiLog4->append(data); break;
+        case 4: ui->uiLog5->append(data); break;
     }
 
     // Update message count and tab caption
     ++this->logCount[index];
 
-    for (short x = 0; x < 4; ++x)
+    for (short x = 0; x < 5; ++x)
     {
         QString caption(this->tabCaptions.at(x));
         if (this->logCount.at(x) > 0)
             caption += " (" + QString::number(this->logCount.at(x)) + ")";
-        ui->tabWidget->setTabText(x, caption);
+        this->setTabCaption(x, caption);
     }
 
 }
@@ -256,6 +282,12 @@ void MainWindow::loadConfig()
                     this->tabCaptions[2] = value;
                 if (key == "tab4caption")
                     this->tabCaptions[3] = value;
+                if (key == "tab5caption")
+                    this->tabCaptions[4] = value;
+                if (key == "controlsvisible")
+                    this->controlsVisible = (value == "1") ? true : false;
+                if (key == "layout")
+                    this->layoutType = (LayoutType) value.toInt();
             }
             file.close();
         }
@@ -276,7 +308,9 @@ void MainWindow::saveConfig()
                      "# timeoutValue = 2\n# windowX = 50\n"
                      "# windowY = 50\n# windowW = 700\n# windowH = 400\n"
                      "# tab1caption = Log 1\n# tab2caption = Log 2\n"
-                     "# tab3caption = Log 3\n# tab4caption = Log 4\n\n");
+                     "# tab3caption = Log 3\n# tab4caption = Log 4\n"
+                     "# tab5caption = Log 5\n# controlsVisible = 1\n"
+                     "# layout = 0\n\n");
 
         data += "serverIp = " + this->serverIp.toString() + "\n";
         data += "serverPort = " + QString::number(this->serverPort)+"\n";
@@ -290,14 +324,172 @@ void MainWindow::saveConfig()
         data += "windowW = " + QString::number(wGeometry.width())+"\n";
         data += "windowH = " + QString::number(wGeometry.height())+"\n";
 
-        for (short x = 0; x < 4; ++x)
+        for (short x = 0; x < 5; ++x)
         {
             data += "tab" + QString::number(x + 1) + "caption = " +
                     this->tabCaptions.at(x)+"\n";
         }
 
+        data += "controlsVisible = ";
+        data += (this->controlsVisible) ? "1" : "0";
+        data += "\nlayout = ";
+        data += QString::number(this->layoutType);
+
         QTextStream out(&configFile);
         out << data;
         configFile.close();
+    }
+}
+
+void MainWindow::slToggleControls()
+{
+    this->controlsVisible = !this->controlsVisible;
+    this->saveConfig();
+    this->updateControls();
+}
+
+void MainWindow::updateControls()
+{
+    ui->frameControls1->setVisible(this->controlsVisible);
+    ui->frameControls2->setVisible(this->controlsVisible);
+    ui->menuBar->setVisible(this->controlsVisible);
+
+    // If menu bar is hidden the actions are also hidden, and
+    // shortcuts won't work. In that case we create new shortcuts so the
+    // user can still use them.
+    if (!this->controlsVisible)
+    {
+        this->scControls = new QShortcut(QKeySequence(tr("Ctrl+H")), this);
+        this->scControls->setContext(Qt::ApplicationShortcut);
+        connect(this->scControls, SIGNAL(activated()),
+                this,             SLOT(slToggleControls()));
+
+        this->scAbout = new QShortcut(QKeySequence(QKeySequence::HelpContents),
+                                      this);
+        this->scAbout->setContext(Qt::ApplicationShortcut);
+        connect(this->scAbout, SIGNAL(activated()),
+                this,          SLOT(slShowAbout()));
+
+        this->scExit = new QShortcut(QKeySequence(QKeySequence::Quit), this);
+        this->scExit->setContext(Qt::ApplicationShortcut);
+        connect(this->scExit, SIGNAL(activated()),
+                this,         SLOT(close()));
+
+        this->scLayout = new QShortcut(QKeySequence(tr("Ctrl+L")), this);
+        this->scLayout->setContext(Qt::ApplicationShortcut);
+        connect(this->scLayout, SIGNAL(activated()),
+                this,           SLOT(slChangeLayout()));
+
+        // We also remove all margins for the central widget
+        ui->centralWidget->layout()->setContentsMargins(0, 0, 0, 0);
+    }
+    else // If controls are back, delete the shortcuts we created to avoid a
+         // shortcut overload error
+    {
+        if (this->scControls != NULL)
+        {
+            delete this->scControls;
+            this->scControls = NULL;
+        }
+        if (this->scAbout!= NULL)
+        {
+            delete this->scAbout;
+            this->scAbout = NULL;
+        }
+        if (this->scExit!= NULL)
+        {
+            delete this->scExit;
+            this->scExit= NULL;
+        }
+        if (this->scLayout!= NULL)
+        {
+            delete this->scLayout;
+            this->scLayout= NULL;
+        }
+
+
+        // And restore the central widget margins
+        ui->centralWidget->layout()->setContentsMargins(9, 9, 9, 9);
+    }
+}
+
+void MainWindow::slChangeLayout()
+{
+    if (this->layoutType == DetailedLayout)
+        this->layoutType = CompactLayout;
+    else this->layoutType = DetailedLayout;
+
+    this->saveConfig();
+    this->updateLayout();
+}
+
+void MainWindow::updateLayout()
+{
+    if (this->layoutType == CompactLayout)
+    {
+        // Show / hide elements
+        ui->frameCompactLayoutTop->show();
+        ui->frameCompactLayoutBottom->show();
+        ui->tabWidget->hide();
+
+        // Move tabs to bottom widgets
+        QString caption = ui->tabWidget->tabText(0);
+        ui->labelA->setText(caption.replace("&", ""));
+        ui->tabWidgetA->addTab(ui->tabWidget->widget(0), caption);
+
+        caption = ui->tabWidget->tabText(0);
+        ui->labelB->setText(caption.replace("&", ""));
+        ui->tabWidgetB->addTab(ui->tabWidget->widget(0), caption);
+
+        caption = ui->tabWidget->tabText(0);
+        ui->labelC->setText(caption.replace("&", ""));
+        ui->tabWidgetC->addTab(ui->tabWidget->widget(0), caption);
+
+        caption = ui->tabWidget->tabText(0);
+        ui->labelD->setText(caption.replace("&", ""));
+        ui->tabWidgetD->addTab(ui->tabWidget->widget(0), caption);
+
+        caption = ui->tabWidget->tabText(0);
+        ui->labelE->setText(caption.replace("&", ""));
+        ui->tabWidgetE->addTab(ui->tabWidget->widget(0), caption);
+    }
+    else
+    {
+        // Move tabs back to first tab widget
+        ui->tabWidget->addTab(ui->tabWidgetA->widget(0),
+                               ui->tabWidgetA->tabText(0));
+        ui->tabWidget->addTab(ui->tabWidgetB->widget(0),
+                               ui->tabWidgetB->tabText(0));
+        ui->tabWidget->addTab(ui->tabWidgetC->widget(0),
+                               ui->tabWidgetC->tabText(0));
+        ui->tabWidget->addTab(ui->tabWidgetD->widget(0),
+                               ui->tabWidgetD->tabText(0));
+        ui->tabWidget->addTab(ui->tabWidgetE->widget(0),
+                               ui->tabWidgetE->tabText(0));
+
+        // Hide / show elements
+        ui->frameCompactLayoutTop->hide();
+        ui->frameCompactLayoutBottom->hide();
+        ui->tabWidget->show();
+    }
+}
+
+void MainWindow::setTabCaption(int index, QString caption)
+{
+    if (this->layoutType == DetailedLayout)
+        ui->tabWidget->setTabText(index, caption);
+    else
+    {
+        caption = caption.replace("&", "");
+        if (index == 0)
+            ui->labelA->setText(caption);
+        if (index == 1)
+            ui->labelB->setText(caption);
+        if (index == 2)
+            ui->labelC->setText(caption);
+        if (index == 3)
+            ui->labelD->setText(caption);
+        if (index == 4)
+            ui->labelE->setText(caption);
     }
 }
