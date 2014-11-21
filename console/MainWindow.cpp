@@ -193,7 +193,8 @@ void MainWindow::slClearLogs()
     ui->uiLog5->clear();
 
     this->logCount.fill(0);
-    for (short x = 0; x < 5; ++x)
+    short numCaptions = this->tabCaptions.count();
+    for (short x = 0; x < numCaptions; ++x)
         this->setTabCaption(x, this->tabCaptions.at(x));
 }
 
@@ -220,12 +221,14 @@ void MainWindow::addDataToLog(int index, QString data)
 
     // Update message count and tab caption
     ++this->logCount[index];
-
-    for (short x = 0; x < 5; ++x)
+    short numCaptions = this->tabCaptions.count();
+    for (short x = 0; x < numCaptions; ++x)
     {
         QString caption(this->tabCaptions.at(x));
+
         if (this->logCount.at(x) > 0)
             caption += " (" + QString::number(this->logCount.at(x)) + ")";
+
         this->setTabCaption(x, caption);
     }
 
@@ -324,7 +327,8 @@ void MainWindow::saveConfig()
         data += "windowW = " + QString::number(wGeometry.width())+"\n";
         data += "windowH = " + QString::number(wGeometry.height())+"\n";
 
-        for (short x = 0; x < 5; ++x)
+        short numCaptions = this->tabCaptions.count();
+        for (short x = 0; x < numCaptions; ++x)
         {
             data += "tab" + QString::number(x + 1) + "caption = " +
                     this->tabCaptions.at(x)+"\n";
