@@ -5,7 +5,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     server(NULL), clearTimer(NULL), scControls(NULL), scAbout(NULL),
-    scLayout(NULL), scExit(NULL)
+    scLayout(NULL), scExit(NULL), scPreferences(NULL)
 {
     ui->setupUi(this);
 
@@ -25,12 +25,34 @@ MainWindow::MainWindow(QWidget *parent) :
     this->controlsVisible = true;
     this->layoutType = DetailedLayout;
 
+    // Set default styles
+    QString defaultSize("font-size : 12px;");
+
+    QString defaultFont("font-family : monospace;");
+    #ifdef Q_OS_WIN32
+    defaultFont = "font-family : Consolas;";
+    #endif
+    #ifdef Q_OS_MAC
+    defaultFont = "font-family : Monaco;";
+    #endif
+    #ifdef Q_OS_LINUX
+    defaultFont = "font-family : \"Liberation Mono\";";
+    #endif
+
+    this->styles["time"] = defaultFont + " color : #aaaaaa; " + defaultSize;
+    this->styles["pre"]  = defaultFont + " color : #000000; " + defaultSize;
+    this->styles["var"]  = defaultFont + " color : #000000; " + defaultSize;
+    this->styles["h1"]   = defaultFont + " color : #b50000; " + defaultSize;
+    this->styles["h2"]   = defaultFont + " color : #009C39; " + defaultSize;
+    this->styles["h3"]   = defaultFont + " color : #000000; " + defaultSize;
+    this->styles["h4"]   = defaultFont + " color : #000000; " + defaultSize;
+    this->styles["h5"]   = defaultFont + " color : #000000; " + defaultSize;
+    this->styles["h6"]   = defaultFont + " color : #000000; " + defaultSize;
+
     // Load config
     this->loadConfig();
 
     // Set up UI
-    ui->uiServerIp->setText(this->serverIp.toString());
-    ui->uiServerPort->setValue(this->serverPort);
     ui->uiTimeoutEnabled->setChecked(this->timeoutEnabled);
     ui->uiTimeoutValue->setValue(this->timeoutValue);
 
@@ -38,8 +60,9 @@ MainWindow::MainWindow(QWidget *parent) :
     title += VERSION;
     this->setWindowTitle(title);
 
-    ui->actionE_xit->setShortcut(QKeySequence(QKeySequence::Quit));
-    ui->action_About->setShortcut(QKeySequence(QKeySequence::HelpContents));
+    ui->actionE_xit->setShortcut(QKeySequence::Quit);
+    ui->action_About->setShortcut(QKeySequence::HelpContents);
+    ui->action_Preferences->setShortcut(QKeySequence(tr("Ctrl+P")));
     ui->action_HideCntrls->setShortcut(QKeySequence(tr("Ctrl+H")));
     ui->actionChangeLayout->setShortcut(QKeySequence(tr("Ctrl+L")));
 
@@ -52,8 +75,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tabWidgetE->tabBar()->hide();
 
     // UI connections
-    connect(ui->uiRestart,          SIGNAL(clicked()),
-            this,                   SLOT(slStartServer()));
     connect(ui->uiTimeoutEnabled,   SIGNAL(stateChanged(int)),
             this,                   SLOT(slTimeoutChanged(int)));
     connect(ui->uiTimeoutValue,     SIGNAL(valueChanged(int)),
@@ -64,6 +85,8 @@ MainWindow::MainWindow(QWidget *parent) :
             this,                   SLOT(close()));
     connect(ui->action_About,       SIGNAL(triggered()),
             this,                   SLOT(slShowAbout()));
+    connect(ui->action_Preferences, SIGNAL(triggered()),
+            this,                   SLOT(slShowPreferences()));
     connect(ui->action_HideCntrls,  SIGNAL(triggered()),
             this,                   SLOT(slToggleControls()));
     connect(ui->actionChangeLayout, SIGNAL(triggered()),
@@ -73,7 +96,7 @@ MainWindow::MainWindow(QWidget *parent) :
     this->updateLayout();
 
     // Start server
-    this->slStartServer();
+    this->startServer();
 }
 
 MainWindow::~MainWindow()
@@ -82,7 +105,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::slStartServer()
+void MainWindow::startServer()
 {
     // Delete any old instances
     if (this->server != NULL)
@@ -90,13 +113,13 @@ void MainWindow::slStartServer()
     if (this->clearTimer != NULL)
     {
         this->clearTimer->stop();
+
         delete this->clearTimer;
+        this->clearTimer = NULL;
     }
 
     // Set up server
     this->server = new QUdpSocket(this);
-    this->serverIp = ui->uiServerIp->text();
-    this->serverPort = ui->uiServerPort->value();
     if (!this->server->bind(this->serverIp, this->serverPort))
     {
         // If controls are hidden show them so the user sees the message
@@ -153,9 +176,7 @@ void MainWindow::slPendingDatagrams()
         this->tabCaptions = data["tabs"].toStringList();
 
         // Update tabs using datagram info
-        short tabCount = this->tabCaptions.length();
-        for (int x = 0; x < tabCount; ++x)
-            this->setTabCaption(x, this->tabCaptions.at(x));
+        this->setTabCaptions();
 
         // Update log windows
         this->addDataToLog(0, data["log1"].toString());
@@ -171,10 +192,11 @@ void MainWindow::slPendingDatagrams()
 
 void MainWindow::slTimeoutChanged(int dummy)
 {
+    Q_UNUSED(dummy);
+    
     /* We use this slot for the check box and spin box change events
      * so the parameter received is not used, we'll get the data directly
      * from the UI elements. */
-    dummy *= 0; // This is just to remove the "unused parameter" compile warning
     this->timeoutEnabled = (ui->uiTimeoutEnabled->checkState() == Qt::Checked);
     this->timeoutValue = ui->uiTimeoutValue->value();
 }
@@ -193,9 +215,7 @@ void MainWindow::slClearLogs()
     ui->uiLog5->clear();
 
     this->logCount.fill(0);
-    short numCaptions = this->tabCaptions.count();
-    for (short x = 0; x < numCaptions; ++x)
-        this->setTabCaption(x, this->tabCaptions.at(x));
+    this->setTabCaptions();
 }
 
 void MainWindow::slShowAbout()
@@ -210,6 +230,8 @@ void MainWindow::addDataToLog(int index, QString data)
         return;
 
     // Append data to UI
+    data = this->formatData(data);
+
     switch (index)
     {
         case 0: ui->uiLog1->append(data); break;
@@ -219,19 +241,9 @@ void MainWindow::addDataToLog(int index, QString data)
         case 4: ui->uiLog5->append(data); break;
     }
 
-    // Update message count and tab caption
+    // Update message count and tab captions
     ++this->logCount[index];
-    short numCaptions = this->tabCaptions.count();
-    for (short x = 0; x < numCaptions; ++x)
-    {
-        QString caption(this->tabCaptions.at(x));
-
-        if (this->logCount.at(x) > 0)
-            caption += " (" + QString::number(this->logCount.at(x)) + ")";
-
-        this->setTabCaption(x, caption);
-    }
-
+    this->setTabCaptions();
 }
 
 void MainWindow::loadConfig()
@@ -296,6 +308,34 @@ void MainWindow::loadConfig()
         }
     }
 
+    // Load and parse styles file if exists
+    bool stylesExists = QFile(this->userFolder + STYLES_FILE).exists();
+    if (stylesExists)
+    {
+        QFile file(this->userFolder + STYLES_FILE);
+        if (file.open(QFile::ReadOnly | QIODevice::Text))
+        {
+            QTextStream in(&file);
+            QString data("");
+            while (!in.atEnd())
+            {
+                QString line(in.readLine().trimmed());
+
+                if (line.startsWith("#") || line.isEmpty())
+                    continue;
+
+                QStringList parts = line.split("=");
+                if (parts.count() != 2)
+                    continue;
+                QString key = parts.at(0).trimmed().toLower();
+                QString value = parts.at(1).trimmed();
+
+                this->styles[key] = value;
+            }
+            file.close();
+        }
+    }
+
     // Apply geometry values
     this->setGeometry(windowGeometry);
 }
@@ -342,6 +382,23 @@ void MainWindow::saveConfig()
         QTextStream out(&configFile);
         out << data;
         configFile.close();
+
+        data += "\n# Message styles. Additional styles may be added in";
+        data += "\n# styles file.\n";
+    }
+
+    QFile stylesFile(this->userFolder + STYLES_FILE);
+    if (stylesFile.open(QIODevice::WriteOnly))
+    {
+        QString data("# Maurina styles definition. You can add styles for "
+                     "any other HTML tag.");
+
+        foreach(QString key, this->styles.keys())
+            data += "\n" + key + " = " + this->styles[key];
+
+        QTextStream out(&stylesFile);
+        out << data;
+        stylesFile.close();
     }
 }
 
@@ -368,13 +425,12 @@ void MainWindow::updateControls()
         connect(this->scControls, SIGNAL(activated()),
                 this,             SLOT(slToggleControls()));
 
-        this->scAbout = new QShortcut(QKeySequence(QKeySequence::HelpContents),
-                                      this);
+        this->scAbout = new QShortcut(QKeySequence::HelpContents, this);
         this->scAbout->setContext(Qt::ApplicationShortcut);
         connect(this->scAbout, SIGNAL(activated()),
                 this,          SLOT(slShowAbout()));
 
-        this->scExit = new QShortcut(QKeySequence(QKeySequence::Quit), this);
+        this->scExit = new QShortcut(QKeySequence::Quit, this);
         this->scExit->setContext(Qt::ApplicationShortcut);
         connect(this->scExit, SIGNAL(activated()),
                 this,         SLOT(close()));
@@ -383,6 +439,11 @@ void MainWindow::updateControls()
         this->scLayout->setContext(Qt::ApplicationShortcut);
         connect(this->scLayout, SIGNAL(activated()),
                 this,           SLOT(slChangeLayout()));
+
+        this->scPreferences = new QShortcut(QKeySequence(tr("Ctrl+P")), this);
+        this->scPreferences->setContext(Qt::ApplicationShortcut);
+        connect(this->scPreferences, SIGNAL(activated()),
+                this,                SLOT(slShowPreferences()));
 
         // We also remove all margins for the central widget
         ui->centralWidget->layout()->setContentsMargins(0, 0, 0, 0);
@@ -410,7 +471,11 @@ void MainWindow::updateControls()
             delete this->scLayout;
             this->scLayout= NULL;
         }
-
+        if (this->scPreferences!= NULL)
+        {
+            delete this->scPreferences;
+            this->scPreferences = NULL;
+        }
 
         // And restore the central widget margins
         ui->centralWidget->layout()->setContentsMargins(9, 9, 9, 9);
@@ -437,25 +502,11 @@ void MainWindow::updateLayout()
         ui->tabWidget->hide();
 
         // Move tabs to bottom widgets
-        QString caption = ui->tabWidget->tabText(0);
-        ui->labelA->setText(caption.replace("&", ""));
-        ui->tabWidgetA->addTab(ui->tabWidget->widget(0), caption);
-
-        caption = ui->tabWidget->tabText(0);
-        ui->labelB->setText(caption.replace("&", ""));
-        ui->tabWidgetB->addTab(ui->tabWidget->widget(0), caption);
-
-        caption = ui->tabWidget->tabText(0);
-        ui->labelC->setText(caption.replace("&", ""));
-        ui->tabWidgetC->addTab(ui->tabWidget->widget(0), caption);
-
-        caption = ui->tabWidget->tabText(0);
-        ui->labelD->setText(caption.replace("&", ""));
-        ui->tabWidgetD->addTab(ui->tabWidget->widget(0), caption);
-
-        caption = ui->tabWidget->tabText(0);
-        ui->labelE->setText(caption.replace("&", ""));
-        ui->tabWidgetE->addTab(ui->tabWidget->widget(0), caption);
+        ui->tabWidgetA->addTab(ui->tabWidget->widget(0), "");
+        ui->tabWidgetB->addTab(ui->tabWidget->widget(0), "");
+        ui->tabWidgetC->addTab(ui->tabWidget->widget(0), "");
+        ui->tabWidgetD->addTab(ui->tabWidget->widget(0), "");
+        ui->tabWidgetE->addTab(ui->tabWidget->widget(0), "");
     }
     else
     {
@@ -476,10 +527,30 @@ void MainWindow::updateLayout()
         ui->frameCompactLayoutBottom->hide();
         ui->tabWidget->show();
     }
+
+    this->setTabCaptions();
+}
+
+void MainWindow::setTabCaptions()
+{
+    QTabBar* bar = ui->tabWidget->tabBar();
+
+    short tabCount = this->tabCaptions.length();
+    for (int x = 0; x < tabCount; ++x)
+    {
+        this->setTabCaption(x, this->tabCaptions.at(x));
+
+        if (this->logCount.at(x) > 0)
+            bar->setTabTextColor(x, QColor(0, 0, 0));
+        else bar->setTabTextColor(x, QColor(180, 180, 180));
+    }
 }
 
 void MainWindow::setTabCaption(int index, QString caption)
 {
+    if (this->logCount.at(index) > 0)
+        caption += " (" + QString::number(this->logCount.at(index)) + ")";
+
     if (this->layoutType == DetailedLayout)
         ui->tabWidget->setTabText(index, caption);
     else
@@ -495,5 +566,45 @@ void MainWindow::setTabCaption(int index, QString caption)
             ui->labelD->setText(caption);
         if (index == 4)
             ui->labelE->setText(caption);
+    }
+}
+
+QString MainWindow::formatData(QString data)
+{
+    foreach(QString key, this->styles.keys())
+    {
+        QString openTag("<" + key + ">");
+        QString closeTag("</" + key + ">");
+        QString value(this->styles[key].replace('"', "'"));
+        QString newOpenTag("<span style=\"" + value + "\">");
+        QString newCloseTag("</span>");
+        if (key == "pre")
+        {
+            newOpenTag = "<pre style=\"" + value + "\">";
+            newCloseTag = "</pre>";
+        }
+
+        data = data.replace(openTag, newOpenTag, Qt::CaseInsensitive);
+        data = data.replace(closeTag, newCloseTag, Qt::CaseInsensitive);
+    }
+
+    return data;
+}
+
+void MainWindow::slShowPreferences()
+{
+    configWindow config;
+
+    config.setServerAdress(this->serverIp);
+    config.setServerPort(this->serverPort);
+    config.setStyles(this->styles);
+
+    if (config.exec() == QDialog::Accepted)
+    {
+        this->serverIp = config.getServerAddress();
+        this->serverPort = config.getServerPort();
+        this->styles = config.getStyles();
+        this->saveConfig();
+        this->startServer();
     }
 }

@@ -46,88 +46,6 @@
        <property name="bottomMargin">
         <number>0</number>
        </property>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0,0,0,0,0">
-         <item>
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>Server</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="uiServerIp">
-           <property name="maximumSize">
-            <size>
-             <width>135</width>
-             <height>16777215</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_2">
-           <property name="text">
-            <string>Port</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSpinBox" name="uiServerPort">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximum">
-            <number>65535</number>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="uiRestart">
-           <property name="text">
-            <string>Restart</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="uiTimeoutEnabled">
-           <property name="text">
-            <string>Clear timeout</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSpinBox" name="uiTimeoutValue">
-           <property name="minimum">
-            <number>1</number>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="uiClearNow">
-           <property name="text">
-            <string>Clear now</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
       </layout>
      </widget>
     </item>
@@ -139,6 +57,9 @@
          <font>
           <pointsize>9</pointsize>
          </font>
+        </property>
+        <property name="autoFillBackground">
+         <bool>false</bool>
         </property>
         <property name="tabPosition">
          <enum>QTabWidget::North</enum>
@@ -160,8 +81,27 @@
           <string>Log 1</string>
          </attribute>
          <layout class="QVBoxLayout" name="verticalLayout_2">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QTextEdit" name="uiLog1"/>
+           <widget class="QTextEdit" name="uiLog1">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="acceptRichText">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -170,8 +110,24 @@
           <string>Log 2</string>
          </attribute>
          <layout class="QVBoxLayout" name="verticalLayout_3">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QTextEdit" name="uiLog2"/>
+           <widget class="QTextEdit" name="uiLog2">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -180,8 +136,24 @@
           <string>Log 3</string>
          </attribute>
          <layout class="QVBoxLayout" name="verticalLayout_4">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QTextEdit" name="uiLog3"/>
+           <widget class="QTextEdit" name="uiLog3">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -190,8 +162,24 @@
           <string>Log 4</string>
          </attribute>
          <layout class="QVBoxLayout" name="verticalLayout_5">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QTextEdit" name="uiLog4"/>
+           <widget class="QTextEdit" name="uiLog4">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -200,8 +188,30 @@
           <string>Log 5</string>
          </attribute>
          <layout class="QVBoxLayout" name="verticalLayout_6">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QTextEdit" name="uiLog5"/>
+           <widget class="QTextEdit" name="uiLog5">
+            <property name="lineWrapMode">
+             <enum>QTextEdit::WidgetWidth</enum>
+            </property>
+            <property name="lineWrapColumnOrWidth">
+             <number>0</number>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -240,8 +250,8 @@
             <widget class="QLabel" name="labelA">
              <property name="font">
               <font>
-               <weight>75</weight>
-               <bold>true</bold>
+               <weight>50</weight>
+               <bold>false</bold>
               </font>
              </property>
              <property name="text">
@@ -267,8 +277,8 @@
             <widget class="QLabel" name="labelB">
              <property name="font">
               <font>
-               <weight>75</weight>
-               <bold>true</bold>
+               <weight>50</weight>
+               <bold>false</bold>
               </font>
              </property>
              <property name="text">
@@ -323,8 +333,8 @@
           <widget class="QLabel" name="labelC">
            <property name="font">
             <font>
-             <weight>75</weight>
-             <bold>true</bold>
+             <weight>50</weight>
+             <bold>false</bold>
             </font>
            </property>
            <property name="text">
@@ -350,8 +360,8 @@
           <widget class="QLabel" name="labelD">
            <property name="font">
             <font>
-             <weight>75</weight>
-             <bold>true</bold>
+             <weight>50</weight>
+             <bold>false</bold>
             </font>
            </property>
            <property name="text">
@@ -373,8 +383,8 @@
           <widget class="QLabel" name="labelE">
            <property name="font">
             <font>
-             <weight>75</weight>
-             <bold>true</bold>
+             <weight>50</weight>
+             <bold>false</bold>
             </font>
            </property>
            <property name="text">
@@ -474,6 +484,34 @@
            </property>
           </spacer>
          </item>
+         <item>
+          <widget class="QCheckBox" name="uiTimeoutEnabled">
+           <property name="text">
+            <string>Clear timeout</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="uiTimeoutValue">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>seconds</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="uiClearNow">
+           <property name="text">
+            <string>Clear now</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
       </layout>
@@ -494,10 +532,13 @@
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="action_About"/>
+    <addaction name="separator"/>
+    <addaction name="action_Preferences"/>
     <addaction name="separator"/>
     <addaction name="action_HideCntrls"/>
     <addaction name="actionChangeLayout"/>
+    <addaction name="separator"/>
+    <addaction name="action_About"/>
     <addaction name="separator"/>
     <addaction name="actionE_xit"/>
     <addaction name="separator"/>
@@ -524,8 +565,29 @@
     <string>Change &amp;layout</string>
    </property>
   </action>
+  <action name="action_Preferences">
+   <property name="text">
+    <string>&amp;Preferences</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <tabstops>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>uiLog1</tabstop>
+  <tabstop>uiLog2</tabstop>
+  <tabstop>uiLog3</tabstop>
+  <tabstop>uiLog4</tabstop>
+  <tabstop>uiLog5</tabstop>
+  <tabstop>tabWidgetA</tabstop>
+  <tabstop>tabWidgetB</tabstop>
+  <tabstop>tabWidgetC</tabstop>
+  <tabstop>tabWidgetD</tabstop>
+  <tabstop>tabWidgetE</tabstop>
+  <tabstop>uiTimeoutEnabled</tabstop>
+  <tabstop>uiTimeoutValue</tabstop>
+  <tabstop>uiClearNow</tabstop>
+ </tabstops>
  <resources>
   <include location="main.qrc"/>
  </resources>
