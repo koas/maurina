@@ -17,7 +17,7 @@
 
 #define CONFIG_FILE "config"
 #define STYLES_FILE "styles"
-#define VERSION "1.1"
+#define VERSION "1.2"
 
 namespace Ui
 {

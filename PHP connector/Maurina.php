@@ -2,7 +2,7 @@
 /*
 
 Maurina connector for PHP.
-Version 1.3
+Version 1.5
 Álvaro Calleja (alvaro.calleja at gmail.com)
 http://www.maurina.org
 
@@ -24,6 +24,8 @@ This class requires PHP5.
 
 -- Changelog --
 
+1.5 Fixed Github issue #5
+1.4 Changed tags for console version 1.2
 1.3 Added packet counter to prevent overflows (see issue #1 in Github)
 1.2 Added the Cookies tab
 1.1 Fixed a notice when the calling script does not use sessions.
@@ -78,26 +80,35 @@ class Maurina
 		register_shutdown_function(array($this, "shutdown"));
 
 		if (count($_REQUEST) > 0)
-			$this->sendLog(Maurina::TYPE_REQUEST, print_r($_REQUEST, true));
+		{
+			$data = $this->formatDump(print_r($_REQUEST, true));
+			$this->sendLog(Maurina::TYPE_REQUEST, $data);
+		}
 		
 		if (isset($_SESSION))
 			if (count($_SESSION) > 0)
-				$this->sendLog(Maurina::TYPE_SESSION, print_r($_SESSION, true));
+			{
+				$data = $this->formatDump(print_r($_SESSION, true));
+				$this->sendLog(Maurina::TYPE_SESSION, $data);
+			}
 
 		if (isset($_COOKIE))
 			if (count($_COOKIE) > 0)
-				$this->sendLog(Maurina::TYPE_COOKIES, print_r($_COOKIE, true));
+			{
+				$data = $this->formatDump(print_r($_COOKIE, true));
+				$this->sendLog(Maurina::TYPE_COOKIES, $data);
+			}
 	}
 
 	public function log($message)
 	{
 		if (gettype($message) == 'array' || gettype($message) == 'object')
-			$message = '<br />' . $this->formatDump(print_r($message, true));
-		if (gettype($message) == 'boolean')
+			$message = $this->formatDump(print_r($message, true));
+		elseif (gettype($message) == 'boolean')
 			$message = ($message) ? 'true' : 'false';
-		if (gettype($message) == 'NULL')
+		elseif (gettype($message) == 'NULL')
 			$message = 'NULL';
-		$message = nl2br($message);
+		else $message = '<var>' . htmlentities($message) . '</var>';
 		$this->sendLog(Maurina::TYPE_USER, $message, true);
 	}
 
@@ -154,12 +165,15 @@ class Maurina
 						 break;
 			case 32767 : $type = 'E_ALL'; break;
 		}
-		$message  = "<span style='color:red'>[$type] ";
+		$message  = "<h1>[$type] ";
 		$message .= "Line $errorLine in $errorFile";
-		$message .= "</span><br /><span style='color:#DE2500'><em>";
+		$message .= "</h1><br /><h2>";
 		if (file_exists($errorFile))
-			$message .= $this->getLineFromFile($errorFile, $errorLine);
-		$message .= "</em></span><br />$errorMsg";
+		{
+			$line = $this->getLineFromFile($errorFile, $errorLine);
+			$message .= htmlentities($line);
+		}
+		$message .= "</h2><br /><h3>$errorMsg</h3><br />";
 
 		$this->sendLog(Maurina::TYPE_ERRORS, $message);
 	}
@@ -185,7 +199,7 @@ class Maurina
 		
 		if ($showTime)
 		{
-			$time = "<span style='color:#aaa'>[".date('H:i:s') . ']</span> ';
+			$time = "<time>[".date('H:i:s') . ']</time> ';
 			$message = $time . $message;
 		}
 
@@ -226,7 +240,7 @@ class Maurina
 	private function formatDump($data)
 	{
 		$data = htmlentities($data);
-		$data = str_replace("  ", "<span style='color:#fff'>__</span>", $data);
+		$data = '<pre>' . $data . '</pre>';
 
 		return $data;
 	}
