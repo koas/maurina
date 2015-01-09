@@ -1,36 +1,45 @@
 <?php
-/*
+/**
+ * Maurina connector for PHP.
+ *
+ * @version 1.5
+ * @author Álvaro Calleja <alvaro.calleja@gmail.com>
+ * @link ttp://www.maurina.org
+ * @license GPL
+ * @license http://opensource.org/licenses/gpl-license.php GNU Public License
+ *
+ */
 
-Maurina connector for PHP.
-Version 1.5
-Álvaro Calleja (alvaro.calleja at gmail.com)
-http://www.maurina.org
-
-When instantiated this class sends to the Maurina console the contents of
-the $_REQUEST, $_SESSION and $_COOKIES (if defined) global variables.
-
-It also captures any errors and send its contents to the console. You can 
-configure the error reporting level below.
-
-Any user defined messages are sent via the log method.
-
-Simple usage:
-
-include ('Maurina.php');
-$M = new Maurina();
-$M->log('This is a user defined message');
-
-This class requires PHP5.
-
--- Changelog --
-
-1.5 Fixed Github issue #5
-1.4 Changed tags for console version 1.2
-1.3 Added packet counter to prevent overflows (see issue #1 in Github)
-1.2 Added the Cookies tab
-1.1 Fixed a notice when the calling script does not use sessions.
-1.0 Initial release.
-*/
+/**
+ * Maurina main class.
+ *
+ * @package Maurina
+ * 
+ * When instantiated this class sends to the Maurina console the contents of
+ * the $_REQUEST, $_SESSION and $_COOKIES (if defined) global variables.
+ *
+ * It also captures any errors and send its contents to the console. You can 
+ * configure the error reporting level below.
+ *
+ * Any user defined messages are sent via the log method.
+ *
+ * Simple usage:
+ *
+ * include ('Maurina.php');
+ * $M = new Maurina();
+ * $M->log('This is a user defined message');
+ * 
+ * This class requires PHP5.
+ *
+ * -- Changelog --
+ * 
+ * 1.5 Fixed Github issue #5
+ * 1.4 Changed tags for console version 1.2
+ * 1.3 Added packet counter to prevent overflows (see issue #1 in Github)
+ * 1.2 Added the Cookies tab
+ * 1.1 Fixed a notice when the calling script does not use sessions.
+ *1.0 Initial release.
+ */
 class Maurina
 {
 	/* CONFIGURE HERE THE ERROR REPORTING LEVEL */
