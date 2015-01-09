@@ -38,7 +38,7 @@
  * 1.3 Added packet counter to prevent overflows (see issue #1 in Github)
  * 1.2 Added the Cookies tab
  * 1.1 Fixed a notice when the calling script does not use sessions.
- *1.0 Initial release.
+ * 1.0 Initial release.
  */
 class Maurina
 {
