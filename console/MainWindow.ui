@@ -525,7 +525,7 @@
      <x>0</x>
      <y>0</y>
      <width>756</width>
-     <height>20</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -568,6 +568,11 @@
   <action name="action_Preferences">
    <property name="text">
     <string>&amp;Preferences</string>
+   </property>
+  </action>
+  <action name="actionChangeScreenMode">
+   <property name="text">
+    <string>Change screen &amp;mode</string>
    </property>
   </action>
  </widget>

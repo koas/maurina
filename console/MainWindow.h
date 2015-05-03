@@ -31,7 +31,7 @@ enum LayoutType
 {
     DetailedLayout = 0, /**< Only one tab visible	*/
     CompactLayout  = 1,	/**< All tabs visible	*/
-    };
+};
 
 class MainWindow : public QMainWindow
 {
