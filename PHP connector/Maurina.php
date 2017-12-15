@@ -68,6 +68,8 @@ class Maurina
 	const TYPE_SESSION = 4;
 	const TYPE_COOKIES = 5;
 
+	const MAX_MSG_SIZE = 5000;
+
 	private $serverIp = '127.0.0.1';
 	private $serverPort = 1947;
 	private $tabCaptions = array('&User', '&Errors', '&Request', '&Session',
@@ -111,14 +113,18 @@ class Maurina
 
 	public function log($message)
 	{
-		if (gettype($message) == 'array' || gettype($message) == 'object')
-			$message = $this->formatDump(print_r($message, true));
-		elseif (gettype($message) == 'boolean')
+		$type = gettype($message);
+		if ($type == 'array' || $type == 'object')
+			$message = '<br />' . $this->formatDump(print_r($message, 1));
+		else if ($type == 'boolean')
 			$message = ($message) ? 'true' : 'false';
-		elseif (gettype($message) == 'NULL')
+		else if ($type == 'NULL')
 			$message = 'NULL';
-		else $message = '<var>' . htmlentities($message) . '</var>';
-		$this->sendLog(Maurina::TYPE_USER, $message, true);
+		else $message = htmlentities($message);
+		$message = nl2br($message);
+
+		foreach (str_split($message, Maurina::MAX_MSG_SIZE) as $packet)
+  			$this->sendLog(Maurina::TYPE_USER, $packet, false);
 	}
 
 	public function errorHandler($errorNumber, $errorMsg, $errorFile,
@@ -174,15 +180,15 @@ class Maurina
 						 break;
 			case 32767 : $type = 'E_ALL'; break;
 		}
-		$message  = "<h1>[$type] ";
+		$message  = "<span style='color:#ff9e9e'>[$type] ";
 		$message .= "Line $errorLine in $errorFile";
-		$message .= "</h1><br /><h2>";
+		$message .= "</span><br /><span style='color:#fffa9e'><em>";
 		if (file_exists($errorFile))
 		{
 			$line = $this->getLineFromFile($errorFile, $errorLine);
-			$message .= htmlentities($line);
+			$message .= htmlentities(trim($line));
 		}
-		$message .= "</h2><br /><h3>$errorMsg</h3><br />";
+		$message .= "</em></span><br />$errorMsg<br />";
 
 		$this->sendLog(Maurina::TYPE_ERRORS, $message);
 	}
@@ -248,9 +254,19 @@ class Maurina
 
 	private function formatDump($data)
 	{
-		$data = htmlentities($data);
-		$data = '<pre>' . $data . '</pre>';
+		$tmp = explode("\n", $data);
+		array_shift($tmp);array_shift($tmp);
+		array_pop($tmp);array_pop($tmp);
+		foreach ($tmp as $k => $v)
+		{
+			$p = explode(' => ', $v);
+			$p[0] = str_replace('[', '', $p[0]);
+			$p[0] = str_replace(']', '', $p[0]);
+			$html = ' <b style="color:#9ee7ff">'.trim($p[0]).'</b> :&nbsp;&nbsp;'.$p[1];
+			$tmp[$k] = $html;
+		}
+		$tmp = trim(implode('<br /><br />', $tmp)).'<br />';
 
-		return $data;
+		return $tmp;
 	}
 }
