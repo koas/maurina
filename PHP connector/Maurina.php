@@ -14,11 +14,11 @@
  * Maurina main class.
  *
  * @package Maurina
- * 
+ *
  * When instantiated this class sends to the Maurina console the contents of
  * the $_REQUEST, $_SESSION and $_COOKIES (if defined) global variables.
  *
- * It also captures any errors and send its contents to the console. You can 
+ * It also captures any errors and send its contents to the console. You can
  * configure the error reporting level below.
  *
  * Any user defined messages are sent via the log method.
@@ -28,11 +28,19 @@
  * include ('Maurina.php');
  * $M = new Maurina();
  * $M->log('This is a user defined message');
- * 
+ *
+ *
+ * Additional startup configurations:
+ *
+ * $M->doHtmlEntities = false;   Disables htmlentities() conversion done on the output text
+ * $M->errorsStyle = 1;          Shows the Errors content with a different format
+ *
+ *
  * This class requires PHP5.
  *
  * -- Changelog --
- * 
+ *
+ * 1.6 PHP7 compatibility and other enhancements
  * 1.5 Fixed Github issue #5
  * 1.4 Changed tags for console version 1.2
  * 1.3 Added packet counter to prevent overflows (see issue #1 in Github)
@@ -42,6 +50,8 @@
  */
 class Maurina
 {
+	public $version='1.6';
+
 	/* CONFIGURE HERE THE ERROR REPORTING LEVEL */
 
 	private $_ERROR             = true;
@@ -61,7 +71,7 @@ class Maurina
 	private $_USER_DEPRECATED   = true;
 
 	/********************************************/
-	
+
 	const TYPE_USER    = 1;
 	const TYPE_ERRORS  = 2;
 	const TYPE_REQUEST = 3;
@@ -70,13 +80,18 @@ class Maurina
 
 	const MAX_MSG_SIZE = 5000;
 
-	private $serverIp = '127.0.0.1';
-	private $serverPort = 1947;
+	private $serverIp    = '127.0.0.1';
+	private $serverPort  = 1947;
 	private $tabCaptions = array('&User', '&Errors', '&Request', '&Session',
-								 '&Cookies');
+	                             '&Cookies');
 
 	private $numPacketsSent = 0;
 	private $numPacketsBeforePause = 50;
+
+	public $cdata=[]; // Place to allow persistent data to be stored by external processes
+
+	public $doHtmlEntities = true;
+	public $errorsStyle    = 0; // 0: default  1: alternate aspect
 
 	function __construct($serverIp = '', $serverPort = '', $tabCaptions = '')
 	{
@@ -84,7 +99,7 @@ class Maurina
 			$this->serverIp = $serverIp;
 		if ($serverPort != '')
 			$this->serverPort = $serverPort;
-		if (count($tabCaptions) > 1)
+		if (  is_array($tabCaptions) && (count($tabCaptions) > 1)  ) // This was the PHP7 fix
 			$this->tabCaptions = $tabCaptions;
 
 		set_error_handler(array($this, "errorHandler"));
@@ -95,7 +110,7 @@ class Maurina
 			$data = $this->formatDump(print_r($_REQUEST, true));
 			$this->sendLog(Maurina::TYPE_REQUEST, $data);
 		}
-		
+
 		if (isset($_SESSION))
 			if (count($_SESSION) > 0)
 			{
@@ -120,20 +135,20 @@ class Maurina
 			$message = ($message) ? 'true' : 'false';
 		else if ($type == 'NULL')
 			$message = 'NULL';
-		else $message = htmlentities($message);
+		else $message = ($this->doHtmlEntities)?htmlentities($message):'<var>'.$message.'</var>';
+
 		$message = nl2br($message);
 
 		foreach (str_split($message, Maurina::MAX_MSG_SIZE) as $packet)
-  			$this->sendLog(Maurina::TYPE_USER, $packet, false);
+			$this->sendLog(Maurina::TYPE_USER, $packet, false);
 	}
 
-	public function errorHandler($errorNumber, $errorMsg, $errorFile,
-								 $errorLine)
+	public function errorHandler($errorNumber, $errorMsg, $errorFile, $errorLine)
 	{
 		$type = '';
 		switch ($errorNumber)
 		{
-			case 1     : $type = 'E_ERROR'; 
+			case 1     : $type = 'E_ERROR';
 						 if (!$this->_ERROR) return;
 						 break;
 			case 2     : $type = 'E_WARNING';
@@ -180,15 +195,43 @@ class Maurina
 						 break;
 			case 32767 : $type = 'E_ALL'; break;
 		}
-		$message  = "<span style='color:#ff9e9e'>[$type] ";
-		$message .= "Line $errorLine in $errorFile";
-		$message .= "</span><br /><span style='color:#fffa9e'><em>";
-		if (file_exists($errorFile))
-		{
-			$line = $this->getLineFromFile($errorFile, $errorLine);
-			$message .= htmlentities(trim($line));
+
+		$message='';
+
+		switch($this->errorsStyle) {
+			case 1:
+				$f = 'font-family:Consolas,Menlo,monospace;';
+				$message .= sprintf(
+				   '<span style="color:#e90c0c;%s">[%s] Line %d in %s</span><br />',
+				   $f, $type, $errorLine, $errorFile
+				);
+
+				if (file_exists($errorFile))
+				{
+					$line     = $this->getLineFromFile($errorFile, $errorLine);
+					$linePrep = htmlentities(trim($line));
+					$message .= sprintf(
+					   '<span style="color:#9be97a;background-color:#44463c;%s">&nbsp;%s&nbsp;</span><br />',
+					   $f, $linePrep
+					);
+				}
+				$message .= sprintf(
+				   '<span style="color:#707070;%s">%s</span>',
+				   $f, $errorMsg
+				);
+				break;
+			default:
+				$message .= "<span style='color:#ff9e9e'>[$type] ";
+				$message .= "Line $errorLine in $errorFile";
+				$message .= "</span><br /><span style='color:#fffa9e'><em>";
+				if (file_exists($errorFile))
+				{
+					$line = $this->getLineFromFile($errorFile, $errorLine);
+					$message .= htmlentities(trim($line));
+				}
+				$message .= "</em></span><br />$errorMsg<br />";
+				break;
 		}
-		$message .= "</em></span><br />$errorMsg<br />";
 
 		$this->sendLog(Maurina::TYPE_ERRORS, $message);
 	}
@@ -196,9 +239,9 @@ class Maurina
 	public function shutdown()
 	{
 		if ($error = error_get_last())
-        {
-        	$this->errorHandler($error['type'], $error['message'],
-        						$error['file'], $error['line']);
+		{
+			$this->errorHandler($error['type'], $error['message'],
+			                    $error['file'], $error['line']);
 		}
 	}
 
@@ -206,15 +249,15 @@ class Maurina
 	{
 		$socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
 		$data = array('tabs' => $this->tabCaptions,
-					  'log1' => '',
-					  'log2' => '',
-					  'log3' => '',
-					  'log4' => '',
-					  'log5' => '');
-		
+		              'log1' => '',
+		              'log2' => '',
+		              'log3' => '',
+		              'log4' => '',
+		              'log5' => '');
+
 		if ($showTime)
 		{
-			$time = "<time>[".date('H:i:s') . ']</time> ';
+			$time    = "<time>[".date('H:i:s') . ']</time> ';
 			$message = $time . $message;
 		}
 
@@ -232,9 +275,9 @@ class Maurina
 		// Insert pause to prevent overflows
 		if (++$this->numPacketsSent % $this->numPacketsBeforePause == 0)
 			usleep(100000);
-		
+
 		socket_sendto($socket, $data, strlen($data), 0, $this->serverIp,
-					  $this->serverPort);
+		              $this->serverPort);
 		socket_close($socket);
 	}
 
@@ -262,7 +305,7 @@ class Maurina
 			$p = explode(' => ', $v);
 			$p[0] = str_replace('[', '', $p[0]);
 			$p[0] = str_replace(']', '', $p[0]);
-			$html = ' <b style="color:#9ee7ff">'.trim($p[0]).'</b> :&nbsp;&nbsp;'.$p[1];
+			$html = ' <span style="font-family:Consolas,Menlo,monospace;"><strong style="color:#3488b6">'.trim($p[0]).'</strong> :&nbsp;'.$p[1].'</span>';
 			$tmp[$k] = $html;
 		}
 		$tmp = trim(implode('<br /><br />', $tmp)).'<br />';
